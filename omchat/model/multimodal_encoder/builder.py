@@ -1,5 +1,6 @@
 from .clip_encoder import CLIPVisionTower
 from .siglip_encoder import SiglipVisionTower
+from .siglip_multi_encoder import SiglipVisionTower as MultiSiglipVisionTower
 from .internVIT_encoder import InternVITVisionTower
 from .internVIT300m_encoder import InternVIT300mVisionTower 
 
@@ -12,6 +13,11 @@ def build_vision_tower(vision_tower_cfg, **kwargs):
         return InternVIT300mVisionTower(vision_tower, args=vision_tower_cfg, **kwargs) 
     elif "internvit-6b" in vision_tower.lower():
         return InternVITVisionTower(vision_tower, args=vision_tower_cfg, **kwargs) 
+    elif "siglip" in vision_tower.lower() and "multi" in vision_tower.lower():
+        return MultiSiglipVisionTower(vision_tower, args=vision_tower_cfg, cache_dir='./cache_dir', **kwargs)
+    elif "siglip" in vision_tower.lower():
+        return SiglipVisionTower(vision_tower, args=vision_tower_cfg, cache_dir='./cache_dir', **kwargs)
+ 
     else: 
         return CLIPVisionTower(vision_tower, args=vision_tower_cfg, **kwargs)
 

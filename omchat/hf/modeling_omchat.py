@@ -41,6 +41,7 @@ from transformers.modeling_utils import PreTrainedModel
 from transformers.utils import logging
 
 from .configuration_omchat import InternVisionConfig
+from transformers import AutoModel
 
 try:
     from .flash_attention import FlashAttention
@@ -677,7 +678,8 @@ OMCHAT_INPUTS_DOCSTRING = r"""
 class OmChatForConditionalGeneration(OmChatPreTrainedModel):
     def __init__(self, config: OmChatConfig):
         super().__init__(config)
-        self.vision_tower = InternVisionModel(InternVisionConfig())
+        #self.vision_tower = InternVisionModel(InternVisionConfig())
+        self.vision_tower = AutoModel.from_config(config.vision_config)
 
         self.multi_modal_projector = OmChatMultiModalProjector(config)
         self.vocab_size = config.text_config.vocab_size

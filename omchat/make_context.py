@@ -34,7 +34,7 @@ def get_context(
     else:
         inp, context_tokens = make_context(
             tokenizer,
-            qs.replace("<image>", "").strip(),
+            text.replace("<image>", "").strip(),
             None,
             initial_prompt,
         )

@@ -2,6 +2,7 @@
 from transformers import LlamaConfig, PretrainedConfig
 from transformers.utils import logging
 from transformers import Qwen2Config, Qwen2Model, Qwen2ForCausalLM, AutoConfig, AutoModelForCausalLM
+from transformers.models.auto import CONFIG_MAPPING
 
 
 logger = logging.get_logger(__name__)
@@ -186,8 +187,12 @@ class OmChatConfig(PretrainedConfig):
         self.image_grid_pinpoints = image_grid_pinpoints
 
         if isinstance(vision_config, dict):
-
-            vision_config = InternVisionConfig(**vision_config)
+            print (vision_config)
+            vision_config["model_type"] = (
+                vision_config["model_type"] if "model_type" in vision_config else "clip_vision_model"
+            )
+            vision_config = CONFIG_MAPPING[vision_config["model_type"]](**vision_config)
+            #vision_config = InternVisionConfig(**vision_config)
         self.vision_config = vision_config
 
         if isinstance(text_config, dict):
