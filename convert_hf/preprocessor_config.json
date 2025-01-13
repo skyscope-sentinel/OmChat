@@ -1,0 +1,58 @@
+{
+  "auto_map": {
+    "AutoProcessor": "processing_omchat.OmChatProcessor",
+    "AutoImageProcessor": "image_processing_omchat.OmChatImageProcessor"
+  },
+  "do_convert_rgb": null,
+  "do_normalize": true,
+  "do_rescale": true,
+  "do_resize": true,
+  "image_grid_pinpoints": [
+    [
+      384,
+      768
+    ],
+    [
+      768,
+      384
+    ],
+    [
+      768,
+      768
+    ],
+    [
+      1152,
+      384
+    ],
+    [
+      384,
+      1152
+    ],
+    [
+      1152,
+      1152
+    ]
+  ],
+  "image_mean": [
+    0.5,
+    0.5,
+    0.5
+  ],
+  "image_processor_type": "SiglipImageProcessor",
+  "image_std": [
+    0.5,
+    0.5,
+    0.5
+  ],
+  "processor_class": "OmChatProcessor",
+  "resample": 3,
+  "rescale_factor": 0.00392156862745098,
+  "size": {
+    "height": 384,
+    "width": 384
+  },
+  "crop_size": {
+    "height": 384,
+    "width": 384
+  }
+}
