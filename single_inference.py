@@ -38,6 +38,7 @@ def load_image(image_file):
 def get_response(text, image_path=None, initial_prompt="You are a helpful assistant.", image_processor=None, model_name=None, tokenizer=None,image_grid_pinpoints=None):
     image = load_image(image_path) if image_path else None
     inp, context_tokens, image_tensor = get_context(text=text, image=image, image_processor=image_processor, image_grid_pinpoints=image_grid_pinpoints, tokenizer=tokenizer, initial_prompt=initial_prompt)
+    print (inp)
     return context_tokens, image_tensor
 
 
@@ -47,6 +48,7 @@ def main(args):
     image_grid_pinpoints = model.config.image_grid_pinpoints
     context_tokens, image_tensor = get_response(args.question, args.image_path, model_name=model_name,tokenizer=tokenizer,image_processor=image_processor,image_grid_pinpoints=image_grid_pinpoints)
     input_ids = torch.tensor([context_tokens]).cuda()
+    print (input_ids)
     streamer = TextStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
     model.generation_config.pad_token_id = tokenizer.pad_token_id
 
@@ -68,11 +70,11 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-path", type=str, default="/data2/omchat_dev/omchat/checkpoints/omchat-qwen2-7b-qllama-internvit6b-fk58")
-    parser.add_argument("--image-path", type=str, default="images/extreme_ironing.jpg")
+    parser.add_argument("--image-path", type=str, default="/ssd/ljj/proj/omchateval_normal/LMUData/images/MathVista_MINI/190.jpg")
     parser.add_argument(
         "--question",
         type=str,
-        default="What is unusual about this image? can you explain this to a 5-year-old kid?",
+        default='Hint: Please answer the question requiring an integer answer and provide the final value, e.g., 1, 2, 3, at the end.\nQuestion: Move the ruler to measure the length of the nail to the nearest inch. The nail is about (_) inches long.'
     )
     parser.add_argument("--num-gpus", type=int, default=1)
     parser.add_argument("--device", type=str, choices=["cuda", "cpu"], default="cuda")

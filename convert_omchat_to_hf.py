@@ -1,4 +1,4 @@
-
+import os
 import argparse
 import gc
 import glob
@@ -22,9 +22,12 @@ from configuration_omchat import InternVisionConfig
 from modeling_omchat import OmChatForConditionalGeneration
 from processing_omchat import OmChatProcessor
 from image_processing_omchat import  OmChatImageProcessor
+from transformers import SiglipImageProcessor, SiglipVisionConfig
+from transformers.models.siglip.modeling_siglip import SiglipVisionModel
 
 KEYS_TO_MODIFY_MAPPING = {
     "model.vision_tower.": "",
+    "image_tower.": "vision_tower.",
     "model.mm_projector": "multi_modal_projector",
     "model": "model.model",
     "vision_model.model": "vision_model",
@@ -59,46 +62,52 @@ def convert_state_dict_to_hf(state_dict):
     return new_state_dict
 
 
-def load_image():
-    url = "https://github.com/haotian-liu/LLaVA/blob/1a91fc274d7c35a9b50b3cb29c4247ae5837ce39/images/llava_v1_5_radar.jpg?raw=true"
-    image = Image.open(requests.get(url, stream=True).raw)
-    return image
-
-
-def convert_omchat_to_hf(file_folder, pytorch_dump_folder_path, text_model_path, image_model_path, push_to_hub=False):
+def convert_omchat_to_hf(pytorch_dump_folder_path, text_model_path, image_model_path, old_state_dict_id, push_to_hub=False):
     # load original config
-    file_path = os.path.join(file_folder, "config.json")
+    file_path = os.path.join(old_state_dict_id, "config.json")
 
     # read json
-    with open(filepath) as f:
+    with open(file_path) as f:
         data = json.load(f)
         print(data)
-
     vision_model_id = data["mm_vision_tower"]
-
     torch.set_default_dtype(torch.float16)
+    #text_config = AutoConfig.from_pretrained(text_model_path)
     text_config = AutoConfig.from_pretrained(text_model_path)
-
+    print (text_config) #'vocab_size': 151668
+    text_config.vocab_size = 151668
     use_fast = True
-    tokenizer = AutoTokenizer.from_pretrained(text_model_path, use_fast=use_fast)
-
+    #tokenizer = AutoTokenizer.from_pretrained(text_model_path, use_fast=use_fast)
+    tokenizer = AutoTokenizer.from_pretrained(old_state_dict_id, use_fast=use_fast)
     image_processor = OmChatImageProcessor.from_pretrained(image_model_path)
     processor = OmChatProcessor(tokenizer=tokenizer, image_processor=image_processor)
-    print (data)
-    
-    vision_config = InternVisionConfig()
+    if "siglip" in vision_model_id:
+        vision_config = SiglipVisionConfig(
+            hidden_size=1152,
+            image_size=384,
+            intermediate_size=4304,
+            num_attention_heads=16,
+            num_hidden_layers=27,
+            patch_size=14,
+            vision_use_head=False,
+        ).to_dict()
+    elif "internvit" in vision_model_id:
+        vision_config = InternVisionConfig()
+    else:
+        vision_config = None 
+
     config = OmChatConfig(
         text_config=text_config.to_dict(),
-        vision_config=vision_config.to_dict(),
+        vision_config=vision_config,
         image_grid_pinpoints=data["image_grid_pinpoints"]
     )
     with init_empty_weights():
         model = OmChatForConditionalGeneration(config)
 
     # load original state dict
-    state_dict = load_original_state_dict("omchat-beta2")
+    state_dict = load_original_state_dict(old_state_dict_id)
     state_dict = convert_state_dict_to_hf(state_dict)
-    model.load_state_dict(state_dict, assign=True)
+    model.load_state_dict(state_dict, assign=True, strict=False)
     model.eval()
 
     Path(pytorch_dump_folder_path).mkdir(exist_ok=True)
@@ -106,4 +115,29 @@ def convert_omchat_to_hf(file_folder, pytorch_dump_folder_path, text_model_path,
     processor.save_pretrained(pytorch_dump_folder_path)
 
 if __name__ == "__main__":
-    convert_omchat_to_hf("omchat-beta2/config.json", text_model_path="../resources/Qwen2-7B", pytorch_dump_folder_path="omchat-beta2_hf", image_model_path="../resources/InternViT-6B-448px-V1-5")
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--t",
+        help="Hub location of the text model",
+    )
+    parser.add_argument(
+        "--v",
+        help="Hub location of the vision model",
+    )
+    parser.add_argument(
+        "--o",
+        help="Location on the hub of the converted model",
+    )
+    parser.add_argument(
+        "--i",
+        help="Location on the hub of the raw state dict of the original model. The filename needs to be `model_state_dict.bin`",
+    )
+    args = parser.parse_args()
+    #convert_llava_llama_to_hf(args.text_model_id, args.vision_model_id, args.output_hub_path, args.old_state_dict_id)
+    convert_omchat_to_hf( 
+            text_model_path=args.t, 
+            pytorch_dump_folder_path=args.o, 
+            image_model_path=args.v,
+            old_state_dict_id=args.i)
